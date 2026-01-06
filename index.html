@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">import React, { useState, useEffect } from 'react';</p>
+<p class="p1">import { Calendar, User, Users, ShieldAlert, CheckCircle, Trash2, Plus, RefreshCw, Settings, Moon, BarChart3, Coffee, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';</p>
+<p class="p2"><br></p>
+<p class="p1">// --- 初始模擬資料 ---</p>
+<p class="p1">const INITIAL_STAFF = [</p>
+<p class="p1"><span class="Apple-converted-space">  </span>// 禮儀師 (8人)</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 1, name: '王世通', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 3, name: '劉春榮', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 4, name: '陳柏融', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 5, name: '胡智欽', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 6, name: '王勇在', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 7, name: '馬育謙', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 8, name: '洪湘葳', role: 'mortician', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>// 禮儀助理 (6人)</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 9, name: '林俊宇', role: 'assistant', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 10, name: '童淙鈿', role: 'assistant', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 11, name: '劉惠婷', role: 'assistant', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 12, name: '徐暐智', role: 'assistant', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [] },</p>
+<p class="p1"><span class="Apple-converted-space">  </span>{ id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [] },</p>
+<p class="p1">];</p>
+<p class="p2"><br></p>
+<p class="p1">const App = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>// --- 狀態管理 ---</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [staffList, setStaffList] = useState(INITIAL_STAFF);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [currentDate, setCurrentDate] = useState(new Date());</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [schedule, setSchedule] = useState({});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [logs, setLogs] = useState([]);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [activeTab, setActiveTab] = useState('calendar');<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const [stats, setStats] = useState([]);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const getDaysInMonth = (year, month) =&gt; new Date(year, month + 1, 0).getDate();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const getFirstDayOfMonth = (year, month) =&gt; new Date(year, month, 1).getDay();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>// --- 年月切換邏輯 ---</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const changeMonth = (offset) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setCurrentDate(newDate);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setSchedule({}); // 切換月份時清空班表</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setStats([]);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setLogs([]);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const handleYearChange = (e) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const newYear = parseInt(e.target.value);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const newDate = new Date(newYear, currentDate.getMonth(), 1);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setCurrentDate(newDate);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setSchedule({});</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setStats([]);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setLogs([]);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const handleMonthChange = (e) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const newMonth = parseInt(e.target.value);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const newDate = new Date(currentDate.getFullYear(), newMonth, 1);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setCurrentDate(newDate);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setSchedule({});</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setStats([]);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setLogs([]);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>// --- 排班演算法核心 ---</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const generateSchedule = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const year = currentDate.getFullYear();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const month = currentDate.getMonth();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const daysInMonth = getDaysInMonth(year, month);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let newSchedule = {};</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let processLogs = [];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// 初始化統計</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let staffStats = staffList.map(s =&gt; ({<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>...s,<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>offCount: 0,</p>
+<p class="p1"><span class="Apple-converted-space">      </span>nightShiftCount: 0,</p>
+<p class="p1"><span class="Apple-converted-space">      </span>haizongCount: 0,</p>
+<p class="p1"><span class="Apple-converted-space">      </span>gaoyiCount: 0,</p>
+<p class="p1"><span class="Apple-converted-space">      </span>consecutiveWork: 0,<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>lastWorkDay: -10,<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>}));</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const shuffle = (array) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let arr = [...array];</p>
+<p class="p1"><span class="Apple-converted-space">      </span>for (let i = arr.length - 1; i &gt; 0; i--) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const j = Math.floor(Math.random() * (i + 1));</p>
+<p class="p1"><span class="Apple-converted-space">        </span>[arr[i], arr[j]] = [arr[j], arr[i]];</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>return arr;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// 設定常數</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const STANDARD_LEAVE_LIMIT = 5; // 隨機分配的標準上限 (5天)</p>
+<p class="p1"><span class="Apple-converted-space">    </span>// 注意：自選假可以超過這個數字到 6 天，但演算法不會主動排給超過 5 天的人</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>for (let day = 1; day &lt;= daysInMonth; day++) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const currentDayObj = new Date(year, month, day);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const dayOfWeek = currentDayObj.getDay();<span class="Apple-converted-space"> </span></p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>let dailyAssignment = {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>nightShift: {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>'海總': [],</p>
+<p class="p1"><span class="Apple-converted-space">          </span>'高醫': []</p>
+<p class="p1"><span class="Apple-converted-space">        </span>},</p>
+<p class="p1"><span class="Apple-converted-space">        </span>off: [],</p>
+<p class="p1"><span class="Apple-converted-space">        </span>standby: []</p>
+<p class="p1"><span class="Apple-converted-space">      </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// --- STEP 1: 決定今日休假 (Off) ---</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 計算目前「還欠大家多少假」才能達到每人 5 天的標準</p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 如果某人已經自選 6 天，他在這裡的需求是 0 (不會負扣別人的)</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const leavesNeededTotal = staffStats.reduce((sum, s) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">         </span>// 計算該員「未來」還有幾天自選假</p>
+<p class="p1"><span class="Apple-converted-space">         </span>const futurePreferred = s.preferredOff.filter(d =&gt; d &gt; day).length;</p>
+<p class="p1"><span class="Apple-converted-space">         </span>// 該員預計總休假 = 目前已休 + 未來必休</p>
+<p class="p1"><span class="Apple-converted-space">         </span>const projectedTotal = s.offCount + futurePreferred;</p>
+<p class="p1"><span class="Apple-converted-space">         </span>// 如果預計總數還沒到 5，就需要補隨機假</p>
+<p class="p1"><span class="Apple-converted-space">         </span>const needed = Math.max(0, STANDARD_LEAVE_LIMIT - projectedTotal);</p>
+<p class="p1"><span class="Apple-converted-space">         </span>return sum + needed;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}, 0);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>const remainingDays = daysInMonth - day + 1;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 決定今日「隨機補人」的數量</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let randomSlots = Math.round(leavesNeededTotal / remainingDays);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (randomSlots &lt; 0) randomSlots = 0;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 確保總休假人數 (必休 + 隨機) 至少 2 人</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let mandatoryOff = staffStats.filter(s =&gt; s.preferredOff.includes(day));</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let currentOffList = [...mandatoryOff];</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>let needed = 0;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (currentOffList.length + randomSlots &lt; 2) {</p>
+<p class="p1"><span class="Apple-converted-space">         </span>needed = 2 - currentOffList.length; // 至少補到 2</p>
+<p class="p1"><span class="Apple-converted-space">      </span>} else if (currentOffList.length + randomSlots &gt; 3) {</p>
+<p class="p1"><span class="Apple-converted-space">         </span>// 如果隨機算出來太多，限制一下，除非必休本身就超過</p>
+<p class="p1"><span class="Apple-converted-space">         </span>needed = Math.max(0, 3 - currentOffList.length);<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">         </span>// 如果 needed &lt; randomSlots，表示我們稍微壓低隨機量延後休</p>
+<p class="p1"><span class="Apple-converted-space">         </span>if (needed &lt; randomSlots &amp;&amp; randomSlots &gt; 0) needed = randomSlots; // 還是尊重平均算法</p>
+<p class="p1"><span class="Apple-converted-space">      </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">         </span>needed = randomSlots;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 上限保護 (每天不超過 4 人休，避免沒人上班)</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (currentOffList.length + needed &gt; 4) needed = Math.max(0, 4 - currentOffList.length);</p>
+<p class="p2"><br></p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 篩選隨機休假候選人</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let candidatesForOff = staffStats.filter(s =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (s.preferredOff.includes(day)) return false;</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 1. 值班的後一天不排隨機休假 (Work -&gt; Off 禁止)</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (s.lastWorkDay === day - 1) return false;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 2. 【關鍵】檢查總休假上限 (隨機假基準為 5 天)</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 計算：目前已休 + 未來自選</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const futurePreferred = s.preferredOff.filter(d =&gt; d &gt; day).length;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const projectedTotal = s.offCount + futurePreferred;</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 如果預計會達到或超過 5 天，就不再給隨機假</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (projectedTotal &gt;= STANDARD_LEAVE_LIMIT) return false;</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>return true;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (needed &gt; 0) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>candidatesForOff.sort((a, b) =&gt; a.offCount - b.offCount);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let potential = candidatesForOff.slice(0, Math.max(needed * 3, 5));<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>potential = shuffle(potential);</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>for (let i = 0; i &lt; needed; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>if (potential.length &gt; 0) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let selected = potential.shift();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>currentOffList.push(selected);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>candidatesForOff = candidatesForOff.filter(c =&gt; c.id !== selected.id);</p>
+<p class="p1"><span class="Apple-converted-space">          </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>dailyAssignment.off = currentOffList;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>currentOffList.forEach(s =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const idx = staffStats.findIndex(st =&gt; st.id === s.id);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>staffStats[idx].offCount++;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>staffStats[idx].consecutiveWork = 0;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// --- STEP 2: 篩選可用人員 (含待命) ---</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let eligibleForNight = staffStats.filter(s =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 1. 今天休假者排除</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (currentOffList.some(off =&gt; off.id === s.id)) return false;</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 2. 隔天(day+1)要休假者 -&gt; 強制待命</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (s.preferredOff.includes(day + 1)) return false;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 3. 連續值班限制：最多 3 天</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (s.consecutiveWork &gt;= 3) return false;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>return true;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// --- STEP 3: 分配夜班 (平均總數優先) ---</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const sortForBalance = (arr, locField) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let temp = shuffle(arr);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return temp.sort((a, b) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>if (a.nightShiftCount !== b.nightShiftCount) return a.nightShiftCount - b.nightShiftCount;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>return a[locField] - b[locField];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p1"><span class="Apple-converted-space">      </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// A. 絕對禮儀師 (海2 高1)</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let morticians = eligibleForNight.filter(s =&gt; s.role === 'mortician');</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>morticians = sortForBalance(morticians, 'haizongCount');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const hzStrictMorts = morticians.splice(0, 2);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>morticians = sortForBalance(morticians, 'gaoyiCount');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const gyStrictMorts = morticians.splice(0, 1);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// B. 彈性支援 (海2 高1)</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let assistants = eligibleForNight.filter(s =&gt; s.role === 'assistant');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let supportPool = [...morticians, ...assistants];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>supportPool = sortForBalance(supportPool, 'haizongCount');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const hzSupport = supportPool.splice(0, 2);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>supportPool = sortForBalance(supportPool, 'gaoyiCount');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const gySupport = supportPool.splice(0, 1);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>const hzTeam = [...hzStrictMorts, ...hzSupport];</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const gyTeam = [...gyStrictMorts, ...gySupport];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>dailyAssignment.nightShift['海總'] = hzTeam;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>dailyAssignment.nightShift['高醫'] = gyTeam;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// C. 更新狀態</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const workingIds = [...hzTeam, ...gyTeam].map(s =&gt; s.id);</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>[...hzTeam, ...gyTeam].forEach(s =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const idx = staffStats.findIndex(st =&gt; st.id === s.id);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>staffStats[idx].nightShiftCount++;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>staffStats[idx].consecutiveWork++;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>staffStats[idx].lastWorkDay = day;</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (dailyAssignment.nightShift['海總'].some(h =&gt; h.id === s.id)) {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>staffStats[idx].haizongCount++;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>staffStats[idx].gaoyiCount++;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// D. 待命者</p>
+<p class="p1"><span class="Apple-converted-space">      </span>staffStats.forEach(s =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!workingIds.includes(s.id) &amp;&amp; !currentOffList.some(o =&gt; o.id === s.id)) {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>const idx = staffStats.findIndex(st =&gt; st.id === s.id);</p>
+<p class="p1"><span class="Apple-converted-space">          </span>staffStats[idx].consecutiveWork = 0;<span class="Apple-converted-space"> </span></p>
+<p class="p1"><span class="Apple-converted-space">          </span>dailyAssignment.standby.push(s);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// --- 驗證與日誌 ---</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (hzTeam.length &lt; 4) processLogs.push(`Day ${day}: 海總人力不足 (現${hzTeam.length}/需4)`);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (gyTeam.length &lt; 2) processLogs.push(`Day ${day}: 高醫人力不足 (現${gyTeam.length}/需2)`);</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>newSchedule[day] = dailyAssignment;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>setSchedule(newSchedule);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setStats(staffStats);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setLogs(processLogs);</p>
+<p class="p2"><span class="Apple-converted-space">    </span></p>
+<p class="p1"><span class="Apple-converted-space">    </span>if(processLogs.length === 0) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>alert("排班完成！\n設定更新：隨機休假基準為 5 天，自選假可特例至 6 天。");</p>
+<p class="p1"><span class="Apple-converted-space">    </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>alert("排班完成，但有部分異常，請查看日誌。");</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>// --- UI Helpers ---</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const handleAddStaff = (name, role) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const newStaff = { id: Date.now(), name, role, preferredOff: [] };</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setStaffList([...staffList, newStaff]);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const handleRemoveStaff = (id) =&gt; setStaffList(staffList.filter(s =&gt; s.id !== id));</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const togglePreferredOff = (staffId, day) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>setStaffList(staffList.map(s =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (s.id !== staffId) return s;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const currentOff = s.preferredOff;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (currentOff.includes(day)) return { ...s, preferredOff: currentOff.filter(d =&gt; d !== day) };</p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 上限調整為 6</p>
+</body>
+</html>
