@@ -1,317 +1,308 @@
-import React, { useState, useRef } from 'react';
-import { User, Calendar, MapPin, Users, Info, Phone, FileText, Eye, Edit3, HeartHandshake, Download } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>訃聞填寫與檢視系統</title>
+  
+  <!-- 載入 Tailwind CSS (用於樣式) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 載入 React 與 ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- 載入 Babel (讓瀏覽器可以直接看懂 JSX 語法) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-const ObituarySystem = () => {
-  const [viewMode, setViewMode] = useState('edit'); // 'edit' or 'preview'
-  const [isDownloading, setIsDownloading] = useState(false);
-  const previewRef = useRef(null);
+  <!-- 載入 html2canvas (用於下載圖片) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  // 表單狀態
-  const [formData, setFormData] = useState({
-    deceased: {
-      name: '',
-      birthSolar: '',
-      birthLunar: '',
-      deathSolar: '',
-      deathLunar: '',
-      deathTime: '',
-      restingPlace: '', // 停靈
-      coffinPlace: '',  // 停柩
-      religion: '',
-    },
-    ceremony: {
-      date: '',
-      location: '',
-      familyTime: '', // 家祭
-      publicTime: '', // 公祭
-    },
-    sender: {
-      name: '',
-      contactAddress: '',
-      phone: '',
-    },
-    family: {
-      son: '', daughterInLaw: '',
-      daughter: '', sonInLaw: '',
-      grandson: '', grandsonInLaw: '',
-      granddaughter: '', grandsonInLaw2: '', // 孝孫女, 孝孫婿
-      mGrandson: '', mGranddaughterInLaw: '', // 孝外孫, 孝外孫媳
-      mGranddaughter: '', mGrandsonInLaw: '', // 孝外孫女, 孝外孫婿
-      greatGrandson: '', greatGranddaughter: '', // 曾孫, 曾孫女
-      mGreatGrandson: '', mGreatGranddaughter: '', // 外曾孫, 外曾孫女
-      brother: '', sisterInLaw: '',
-      yBrother: '', ySisterInLaw: '', // 胞弟, 胞弟媳
-      sister: '', brotherInLaw: '', // 胞姊, 胞姊夫
-      ySister: '', yBrotherInLaw: '', // 胞妹, 胞妹婿
-    }
-  });
+  <style>
+    body { font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', sans-serif; }
+    /* 防止在手機上點擊輸入框時畫面放大 */
+    input[type="text"] { font-size: 16px; } 
+  </style>
+</head>
+<body class="bg-gray-50">
+  
+  <!-- React 應用程式會掛載到這個 div 裡面 -->
+  <div id="root"></div>
 
-  // 更新各區塊資料
-  const handleChange = (section, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
-      }
-    }));
-  };
+  <script type="text/babel">
+    const { useState, useRef } = React;
 
-  // UI 分組設定，方便渲染表單
-  const familyFields = [
-    { label: '孝男', key: 'son' }, { label: '孝婦', key: 'daughterInLaw' },
-    { label: '孝女', key: 'daughter' }, { label: '孝女婿', key: 'sonInLaw' },
-    { label: '孝孫', key: 'grandson' }, { label: '孝孫媳', key: 'grandsonInLaw' },
-    { label: '孝孫女', key: 'granddaughter' }, { label: '孝孫婿', key: 'grandsonInLaw2' },
-    { label: '孝外孫', key: 'mGrandson' }, { label: '孝外孫媳', key: 'mGranddaughterInLaw' },
-    { label: '孝外孫女', key: 'mGranddaughter' }, { label: '孝外孫婿', key: 'mGrandsonInLaw' },
-    { label: '曾孫', key: 'greatGrandson' }, { label: '曾孫女', key: 'greatGranddaughter' },
-    { label: '外曾孫', key: 'mGreatGrandson' }, { label: '外曾孫女', key: 'mGreatGranddaughter' },
-    { label: '胞兄', key: 'brother' }, { label: '胞兄嫂', key: 'sisterInLaw' },
-    { label: '胞弟', key: 'yBrother' }, { label: '胞弟媳', key: 'ySisterInLaw' },
-    { label: '胞姊', key: 'sister' }, { label: '胞姊夫', key: 'brotherInLaw' },
-    { label: '胞妹', key: 'ySister' }, { label: '胞妹婿', key: 'yBrotherInLaw' },
-  ];
+    // --- 圖示元件 (替換原本需要安裝的 lucide-react 套件) ---
+    const IconUser = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+    const IconCalendar = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
+    const IconFileText = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
+    const IconUsers = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    const IconEye = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>;
+    const IconEdit3 = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
+    const IconDownload = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>;
+    const IconHeartHandshake = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>;
 
-  // 共用輸入框元件
-  const InputField = ({ label, value, onChange, placeholder = '' }) => (
-    <div className="flex flex-col mb-3">
-      <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type="text"
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-base"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || `請輸入${label}`}
-      />
-    </div>
-  );
+    const ObituarySystem = () => {
+      const [viewMode, setViewMode] = useState('edit');
+      const [isDownloading, setIsDownloading] = useState(false);
+      const previewRef = useRef(null);
 
-  // 區塊標題元件
-  const SectionTitle = ({ icon: Icon, title }) => (
-    <div className="flex items-center space-x-2 pb-2 mb-4 border-b border-gray-200 text-gray-800">
-      <Icon size={20} className="text-gray-600" />
-      <h2 className="text-lg font-bold">{title}</h2>
-    </div>
-  );
-
-  const loadHtml2Canvas = () => {
-    return new Promise((resolve) => {
-      if (window.html2canvas) {
-        resolve(window.html2canvas);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      script.onload = () => resolve(window.html2canvas);
-      document.body.appendChild(script);
-    });
-  };
-
-  const handleDownloadImage = async () => {
-    if (!previewRef.current) return;
-    setIsDownloading(true);
-    try {
-      const html2canvas = await loadHtml2Canvas();
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2, // 提高圖片解析度
-        backgroundColor: '#ffffff', // 確保背景為純白
+      const [formData, setFormData] = useState({
+        deceased: {
+          name: '', birthSolar: '', birthLunar: '', deathSolar: '', deathLunar: '', deathTime: '', restingPlace: '', coffinPlace: '', religion: '',
+        },
+        ceremony: {
+          date: '', location: '', familyTime: '', publicTime: '',
+        },
+        sender: {
+          name: '', contactAddress: '', phone: '',
+        },
+        family: {
+          son: '', daughterInLaw: '', daughter: '', sonInLaw: '', grandson: '', grandsonInLaw: '', granddaughter: '', grandsonInLaw2: '',
+          mGrandson: '', mGranddaughterInLaw: '', mGranddaughter: '', mGrandsonInLaw: '', greatGrandson: '', greatGranddaughter: '',
+          mGreatGrandson: '', mGreatGranddaughter: '', brother: '', sisterInLaw: '', yBrother: '', ySisterInLaw: '', sister: '', brotherInLaw: '', ySister: '', yBrotherInLaw: '',
+        }
       });
-      const image = canvas.toDataURL('image/jpeg', 0.9);
-      const link = document.createElement('a');
-      link.href = image;
-      link.download = `${formData.deceased.name || '訃聞'}_資料核對.jpg`;
-      link.click();
-    } catch (error) {
-      console.error('Failed to generate image', error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
-  // 渲染填寫模式
-  const renderEditMode = () => (
-    <div className="space-y-6 pb-24">
-      {/* 亡者資訊 */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <SectionTitle icon={User} title="亡者資訊" />
-        <InputField label="亡者姓名" value={formData.deceased.name} onChange={(v) => handleChange('deceased', 'name', v)} />
-        <div className="grid grid-cols-2 gap-3">
-          <InputField label="生 (國曆)" value={formData.deceased.birthSolar} onChange={(v) => handleChange('deceased', 'birthSolar', v)} placeholder="YYYY/MM/DD" />
-          <InputField label="生 (農曆)" value={formData.deceased.birthLunar} onChange={(v) => handleChange('deceased', 'birthLunar', v)} placeholder="MM/DD" />
-          <InputField label="歿 (國曆)" value={formData.deceased.deathSolar} onChange={(v) => handleChange('deceased', 'deathSolar', v)} placeholder="YYYY/MM/DD" />
-          <InputField label="歿 (農曆)" value={formData.deceased.deathLunar} onChange={(v) => handleChange('deceased', 'deathLunar', v)} placeholder="MM/DD" />
+      const handleChange = (section, field, value) => {
+        setFormData(prev => ({
+          ...prev, [section]: { ...prev[section], [field]: value }
+        }));
+      };
+
+      const familyFields = [
+        { label: '孝男', key: 'son' }, { label: '孝婦', key: 'daughterInLaw' },
+        { label: '孝女', key: 'daughter' }, { label: '孝女婿', key: 'sonInLaw' },
+        { label: '孝孫', key: 'grandson' }, { label: '孝孫媳', key: 'grandsonInLaw' },
+        { label: '孝孫女', key: 'granddaughter' }, { label: '孝孫婿', key: 'grandsonInLaw2' },
+        { label: '孝外孫', key: 'mGrandson' }, { label: '孝外孫媳', key: 'mGranddaughterInLaw' },
+        { label: '孝外孫女', key: 'mGranddaughter' }, { label: '孝外孫婿', key: 'mGrandsonInLaw' },
+        { label: '曾孫', key: 'greatGrandson' }, { label: '曾孫女', key: 'greatGranddaughter' },
+        { label: '外曾孫', key: 'mGreatGrandson' }, { label: '外曾孫女', key: 'mGreatGranddaughter' },
+        { label: '胞兄', key: 'brother' }, { label: '胞兄嫂', key: 'sisterInLaw' },
+        { label: '胞弟', key: 'yBrother' }, { label: '胞弟媳', key: 'ySisterInLaw' },
+        { label: '胞姊', key: 'sister' }, { label: '胞姊夫', key: 'brotherInLaw' },
+        { label: '胞妹', key: 'ySister' }, { label: '胞妹婿', key: 'yBrotherInLaw' },
+      ];
+
+      const InputField = ({ label, value, onChange, placeholder = '' }) => (
+        <div className="flex flex-col mb-3">
+          <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
+          <input
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-base"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder || `請輸入${label}`}
+          />
         </div>
-        <InputField label="歿 (時間)" value={formData.deceased.deathTime} onChange={(v) => handleChange('deceased', 'deathTime', v)} placeholder="例如：上午 10 時 30 分" />
-        <div className="grid grid-cols-2 gap-3">
-          <InputField label="停靈" value={formData.deceased.restingPlace} onChange={(v) => handleChange('deceased', 'restingPlace', v)} />
-          <InputField label="停柩" value={formData.deceased.coffinPlace} onChange={(v) => handleChange('deceased', 'coffinPlace', v)} />
+      );
+
+      const SectionTitle = ({ icon: Icon, title }) => (
+        <div className="flex items-center space-x-2 pb-2 mb-4 border-b border-gray-200 text-gray-800">
+          <Icon size={20} className="text-gray-600" />
+          <h2 className="text-lg font-bold">{title}</h2>
         </div>
-        <InputField label="宗教別" value={formData.deceased.religion} onChange={(v) => handleChange('deceased', 'religion', v)} placeholder="例如：佛教、基督教..." />
-      </div>
+      );
 
-      {/* 告別式資訊 */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <SectionTitle icon={Calendar} title="告別式資訊" />
-        <InputField label="告別式日期" value={formData.ceremony.date} onChange={(v) => handleChange('ceremony', 'date', v)} placeholder="YYYY/MM/DD" />
-        <InputField label="告別式地點" value={formData.ceremony.location} onChange={(v) => handleChange('ceremony', 'location', v)} />
-        <div className="grid grid-cols-2 gap-3">
-          <InputField label="家祭時間" value={formData.ceremony.familyTime} onChange={(v) => handleChange('ceremony', 'familyTime', v)} placeholder="例如：上午 8 點" />
-          <InputField label="公祭時間" value={formData.ceremony.publicTime} onChange={(v) => handleChange('ceremony', 'publicTime', v)} placeholder="例如：上午 9 點" />
-        </div>
-      </div>
+      const handleDownloadImage = async () => {
+        if (!previewRef.current) return;
+        setIsDownloading(true);
+        try {
+          // 直接呼叫 CDN 載入的 html2canvas
+          const canvas = await window.html2canvas(previewRef.current, {
+            scale: 2, 
+            backgroundColor: '#ffffff',
+          });
+          const image = canvas.toDataURL('image/jpeg', 0.9);
+          const link = document.createElement('a');
+          link.href = image;
+          link.download = `${formData.deceased.name || '訃聞'}_資料核對.jpg`;
+          link.click();
+        } catch (error) {
+          console.error('Failed to generate image', error);
+          alert("圖片產生失敗，請稍後再試。");
+        } finally {
+          setIsDownloading(false);
+        }
+      };
 
-      {/* 發文者資訊 */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <SectionTitle icon={FileText} title="發文者資訊" />
-        <InputField label="發文者" value={formData.sender.name} onChange={(v) => handleChange('sender', 'name', v)} />
-        <InputField label="聯絡處" value={formData.sender.contactAddress} onChange={(v) => handleChange('sender', 'contactAddress', v)} />
-        <InputField label="電話" value={formData.sender.phone} onChange={(v) => handleChange('sender', 'phone', v)} />
-      </div>
-
-      {/* 家屬名單 */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <SectionTitle icon={Users} title="家屬名單" />
-        <p className="text-xs text-gray-500 mb-4">* 若有多人請用逗號或空格分隔，無則留空。</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {familyFields.map(({ label, key }) => (
-            <InputField 
-              key={key} 
-              label={label} 
-              value={formData.family[key]} 
-              onChange={(v) => handleChange('family', key, v)} 
-              placeholder="姓名"
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // 預覽模式的一行資料呈現元件
-  const PreviewRow = ({ label, value }) => {
-    if (!value) return null;
-    return (
-      <div className="flex border-b border-gray-100 py-2 last:border-0">
-        <span className="w-1/3 text-gray-500 font-medium">{label}</span>
-        <span className="w-2/3 text-gray-900">{value}</span>
-      </div>
-    );
-  };
-
-  // 預覽模式家屬呈現元件
-  const PreviewFamily = () => {
-    const filledFamily = familyFields.filter(f => formData.family[f.key]?.trim() !== '');
-    if (filledFamily.length === 0) return <p className="text-gray-400 italic text-sm py-2">尚未填寫家屬名單</p>;
-    
-    return (
-      <div className="grid grid-cols-1 gap-2 mt-2">
-        {filledFamily.map(f => (
-          <div key={f.key} className="flex">
-            <span className="w-1/3 text-gray-500 font-medium">{f.label}</span>
-            <span className="w-2/3 text-gray-900">{formData.family[f.key]}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // 渲染預覽模式
-  const renderPreviewMode = () => (
-    <div className="space-y-6 pb-24">
-      <div ref={previewRef} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        <h2 className="text-xl font-bold text-center mb-6 text-gray-800 tracking-widest">{formData.deceased.name ? `${formData.deceased.name} 訃聞資料核對` : '訃聞資料核對'}</h2>
-        
-        <div className="mb-6">
-          <SectionTitle icon={User} title="亡者資訊" />
-          <PreviewRow label="姓名" value={formData.deceased.name} />
-          <PreviewRow label="生 (國曆)" value={formData.deceased.birthSolar} />
-          <PreviewRow label="生 (農曆)" value={formData.deceased.birthLunar} />
-          <PreviewRow label="歿 (國曆)" value={formData.deceased.deathSolar} />
-          <PreviewRow label="歿 (農曆)" value={formData.deceased.deathLunar} />
-          <PreviewRow label="歿 (時間)" value={formData.deceased.deathTime} />
-          <PreviewRow label="停靈" value={formData.deceased.restingPlace} />
-          <PreviewRow label="停柩" value={formData.deceased.coffinPlace} />
-          <PreviewRow label="宗教別" value={formData.deceased.religion} />
-        </div>
-
-        <div className="mb-6">
-          <SectionTitle icon={Calendar} title="告別式資訊" />
-          <PreviewRow label="日期" value={formData.ceremony.date} />
-          <PreviewRow label="地點" value={formData.ceremony.location} />
-          <PreviewRow label="家祭" value={formData.ceremony.familyTime} />
-          <PreviewRow label="公祭" value={formData.ceremony.publicTime} />
-        </div>
-
-        <div className="mb-6">
-          <SectionTitle icon={FileText} title="發文者資訊" />
-          <PreviewRow label="發文者" value={formData.sender.name} />
-          <PreviewRow label="聯絡處" value={formData.sender.contactAddress} />
-          <PreviewRow label="電話" value={formData.sender.phone} />
-        </div>
-
-        <div>
-          <SectionTitle icon={Users} title="家屬名單" />
-          <PreviewFamily />
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans sm:py-6">
-      <div className="max-w-md mx-auto relative bg-gray-50 sm:bg-transparent min-h-screen sm:min-h-0">
-        
-        {/* Header */}
-        <header className="bg-gray-800 text-white p-4 shadow-md sticky top-0 z-10 sm:rounded-t-2xl flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <HeartHandshake size={24} />
-            <h1 className="text-lg font-bold tracking-wide">訃聞資料系統</h1>
-          </div>
-          <div className="text-sm bg-gray-700 px-3 py-1 rounded-full">
-            {viewMode === 'edit' ? '填寫中' : '核對模式'}
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="p-4 sm:bg-white sm:shadow-lg sm:rounded-b-2xl">
-          {viewMode === 'edit' ? renderEditMode() : renderPreviewMode()}
-        </main>
-
-        {/* Bottom Floating Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] sm:max-w-md sm:mx-auto z-20">
-          {viewMode === 'edit' ? (
-            <button 
-              onClick={() => setViewMode('preview')}
-              className="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-700 active:bg-gray-900 transition-colors"
-            >
-              <Eye size={20} />
-              <span>預覽與核對資料</span>
-            </button>
-          ) : (
-            <div className="flex space-x-3">
-              <button 
-                onClick={() => setViewMode('edit')}
-                className="w-1/3 bg-gray-100 text-gray-800 font-bold py-3 px-2 rounded-xl flex items-center justify-center space-x-1 border border-gray-300 hover:bg-gray-200 active:bg-gray-300 transition-colors"
-              >
-                <Edit3 size={18} />
-                <span className="text-sm">返回修改</span>
-              </button>
-              <button 
-                onClick={handleDownloadImage}
-                disabled={isDownloading}
-                className="w-2/3 bg-blue-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50"
-              >
-                <Download size={20} />
-                <span>{isDownloading ? '產生圖片中...' : '下載為圖片'}</span>
-              </button>
+      const renderEditMode = () => (
+        <div className="space-y-6 pb-24">
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <SectionTitle icon={IconUser} title="亡者資訊" />
+            <InputField label="亡者姓名" value={formData.deceased.name} onChange={(v) => handleChange('deceased', 'name', v)} />
+            <div className="grid grid-cols-2 gap-3">
+              <InputField label="生 (國曆)" value={formData.deceased.birthSolar} onChange={(v) => handleChange('deceased', 'birthSolar', v)} placeholder="YYYY/MM/DD" />
+              <InputField label="生 (農曆)" value={formData.deceased.birthLunar} onChange={(v) => handleChange('deceased', 'birthLunar', v)} placeholder="MM/DD" />
+              <InputField label="歿 (國曆)" value={formData.deceased.deathSolar} onChange={(v) => handleChange('deceased', 'deathSolar', v)} placeholder="YYYY/MM/DD" />
+              <InputField label="歿 (農曆)" value={formData.deceased.deathLunar} onChange={(v) => handleChange('deceased', 'deathLunar', v)} placeholder="MM/DD" />
             </div>
-          )}
+            <InputField label="歿 (時間)" value={formData.deceased.deathTime} onChange={(v) => handleChange('deceased', 'deathTime', v)} placeholder="例如：上午 10 時 30 分" />
+            <div className="grid grid-cols-2 gap-3">
+              <InputField label="停靈" value={formData.deceased.restingPlace} onChange={(v) => handleChange('deceased', 'restingPlace', v)} />
+              <InputField label="停柩" value={formData.deceased.coffinPlace} onChange={(v) => handleChange('deceased', 'coffinPlace', v)} />
+            </div>
+            <InputField label="宗教別" value={formData.deceased.religion} onChange={(v) => handleChange('deceased', 'religion', v)} placeholder="例如：佛教、基督教..." />
+          </div>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <SectionTitle icon={IconCalendar} title="告別式資訊" />
+            <InputField label="告別式日期" value={formData.ceremony.date} onChange={(v) => handleChange('ceremony', 'date', v)} placeholder="YYYY/MM/DD" />
+            <InputField label="告別式地點" value={formData.ceremony.location} onChange={(v) => handleChange('ceremony', 'location', v)} />
+            <div className="grid grid-cols-2 gap-3">
+              <InputField label="家祭時間" value={formData.ceremony.familyTime} onChange={(v) => handleChange('ceremony', 'familyTime', v)} placeholder="例如：上午 8 點" />
+              <InputField label="公祭時間" value={formData.ceremony.publicTime} onChange={(v) => handleChange('ceremony', 'publicTime', v)} placeholder="例如：上午 9 點" />
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <SectionTitle icon={IconFileText} title="發文者資訊" />
+            <InputField label="發文者" value={formData.sender.name} onChange={(v) => handleChange('sender', 'name', v)} />
+            <InputField label="聯絡處" value={formData.sender.contactAddress} onChange={(v) => handleChange('sender', 'contactAddress', v)} />
+            <InputField label="電話" value={formData.sender.phone} onChange={(v) => handleChange('sender', 'phone', v)} />
+          </div>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <SectionTitle icon={IconUsers} title="家屬名單" />
+            <p className="text-xs text-gray-500 mb-4">* 若有多人請用逗號或空格分隔，無則留空。</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {familyFields.map(({ label, key }) => (
+                <InputField 
+                  key={key} label={label} value={formData.family[key]} 
+                  onChange={(v) => handleChange('family', key, v)} placeholder="姓名"
+                />
+              ))}
+            </div>
+          </div>
         </div>
+      );
 
-      </div>
-    </div>
-  );
-};
+      const PreviewRow = ({ label, value }) => {
+        if (!value) return null;
+        return (
+          <div className="flex border-b border-gray-100 py-2 last:border-0">
+            <span className="w-1/3 text-gray-500 font-medium">{label}</span>
+            <span className="w-2/3 text-gray-900">{value}</span>
+          </div>
+        );
+      };
 
-export default ObituarySystem;
+      const PreviewFamily = () => {
+        const filledFamily = familyFields.filter(f => formData.family[f.key]?.trim() !== '');
+        if (filledFamily.length === 0) return <p className="text-gray-400 italic text-sm py-2">尚未填寫家屬名單</p>;
+        
+        return (
+          <div className="grid grid-cols-1 gap-2 mt-2">
+            {filledFamily.map(f => (
+              <div key={f.key} className="flex">
+                <span className="w-1/3 text-gray-500 font-medium">{f.label}</span>
+                <span className="w-2/3 text-gray-900">{formData.family[f.key]}</span>
+              </div>
+            ))}
+          </div>
+        );
+      };
+
+      const renderPreviewMode = () => (
+        <div className="space-y-6 pb-24">
+          <div ref={previewRef} className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-xl font-bold text-center mb-6 text-gray-800 tracking-widest">{formData.deceased.name ? `${formData.deceased.name} 訃聞資料核對` : '訃聞資料核對'}</h2>
+            
+            <div className="mb-6">
+              <SectionTitle icon={IconUser} title="亡者資訊" />
+              <PreviewRow label="姓名" value={formData.deceased.name} />
+              <PreviewRow label="生 (國曆)" value={formData.deceased.birthSolar} />
+              <PreviewRow label="生 (農曆)" value={formData.deceased.birthLunar} />
+              <PreviewRow label="歿 (國曆)" value={formData.deceased.deathSolar} />
+              <PreviewRow label="歿 (農曆)" value={formData.deceased.deathLunar} />
+              <PreviewRow label="歿 (時間)" value={formData.deceased.deathTime} />
+              <PreviewRow label="停靈" value={formData.deceased.restingPlace} />
+              <PreviewRow label="停柩" value={formData.deceased.coffinPlace} />
+              <PreviewRow label="宗教別" value={formData.deceased.religion} />
+            </div>
+
+            <div className="mb-6">
+              <SectionTitle icon={IconCalendar} title="告別式資訊" />
+              <PreviewRow label="日期" value={formData.ceremony.date} />
+              <PreviewRow label="地點" value={formData.ceremony.location} />
+              <PreviewRow label="家祭" value={formData.ceremony.familyTime} />
+              <PreviewRow label="公祭" value={formData.ceremony.publicTime} />
+            </div>
+
+            <div className="mb-6">
+              <SectionTitle icon={IconFileText} title="發文者資訊" />
+              <PreviewRow label="發文者" value={formData.sender.name} />
+              <PreviewRow label="聯絡處" value={formData.sender.contactAddress} />
+              <PreviewRow label="電話" value={formData.sender.phone} />
+            </div>
+
+            <div>
+              <SectionTitle icon={IconUsers} title="家屬名單" />
+              <PreviewFamily />
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="min-h-screen bg-gray-50 text-gray-800 font-sans sm:py-6">
+          <div className="max-w-md mx-auto relative bg-gray-50 sm:bg-transparent min-h-screen sm:min-h-0">
+            
+            {/* Header */}
+            <header className="bg-gray-800 text-white p-4 shadow-md sticky top-0 z-10 sm:rounded-t-2xl flex justify-between items-center">
+              <div className="flex items-center space-x-2">
+                <IconHeartHandshake size={24} />
+                <h1 className="text-lg font-bold tracking-wide">訃聞資料系統</h1>
+              </div>
+              <div className="text-sm bg-gray-700 px-3 py-1 rounded-full">
+                {viewMode === 'edit' ? '填寫中' : '核對模式'}
+              </div>
+            </header>
+
+            {/* Content */}
+            <main className="p-4 sm:bg-white sm:shadow-lg sm:rounded-b-2xl">
+              {viewMode === 'edit' ? renderEditMode() : renderPreviewMode()}
+            </main>
+
+            {/* Bottom Floating Action Bar */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] sm:max-w-md sm:mx-auto z-20">
+              {viewMode === 'edit' ? (
+                <button 
+                  onClick={() => setViewMode('preview')}
+                  className="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-700 active:bg-gray-900 transition-colors"
+                >
+                  <IconEye size={20} />
+                  <span>預覽與核對資料</span>
+                </button>
+              ) : (
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => setViewMode('edit')}
+                    className="w-1/3 bg-gray-100 text-gray-800 font-bold py-3 px-2 rounded-xl flex items-center justify-center space-x-1 border border-gray-300 hover:bg-gray-200 active:bg-gray-300 transition-colors"
+                  >
+                    <IconEdit3 size={18} />
+                    <span className="text-sm">返回修改</span>
+                  </button>
+                  <button 
+                    onClick={handleDownloadImage}
+                    disabled={isDownloading}
+                    className="w-2/3 bg-blue-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50"
+                  >
+                    <IconDownload size={20} />
+                    <span>{isDownloading ? '產生圖片中...' : '下載為圖片'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // 掛載 React 元件
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ObituarySystem />);
+  </script>
+</body>
+</html>
