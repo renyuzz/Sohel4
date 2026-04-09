@@ -57,13 +57,13 @@
       { label: '胞姊', key: 'sister' }, { label: '胞姊夫', key: 'brotherInLaw' },
       { label: '胞妹', key: 'ySister' }, { label: '胞妹婿', key: 'yBrotherInLaw' },
     ];
-
-    // 新增 type 屬性以支援原生 date / time 選擇器
-    const InputField = ({ label, value, onChange, placeholder = '', type = 'text' }) => (
+    // 新增 type 與 list 屬性以支援原生 date / time 或 datalist 選擇器
+    const InputField = ({ label, value, onChange, placeholder = '', type = 'text', list }) => (
       <div className="flex flex-col mb-3">
         <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
         <input
           type={type}
+          list={list}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-base"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -162,13 +162,13 @@
             <SectionTitle icon={IconUser} title="亡者資訊" />
             <InputField label="亡者姓名" value={formData.deceased.name} onChange={(v) => handleChange('deceased', 'name', v)} />
             <div className="grid grid-cols-2 gap-3">
-              <InputField type="date" label="生 (國曆)" value={formData.deceased.birthSolar} onChange={(v) => handleChange('deceased', 'birthSolar', v)} />
+              <InputField type="text" label="生 (國曆)" value={formData.deceased.birthSolar} onChange={(v) => handleChange('deceased', 'birthSolar', v)} placeholder="例如: 35/01/01" />
               <InputField type="text" label="生 (農曆)" value={formData.deceased.birthLunar} onChange={(v) => handleChange('deceased', 'birthLunar', v)} placeholder="例如: 五月初五" />
-              <InputField type="date" label="歿 (國曆)" value={formData.deceased.deathSolar} onChange={(v) => handleChange('deceased', 'deathSolar', v)} />
+              <InputField type="text" label="歿 (國曆)" value={formData.deceased.deathSolar} onChange={(v) => handleChange('deceased', 'deathSolar', v)} placeholder="例如: 113/12/31" />
               <InputField type="text" label="歿 (農曆)" value={formData.deceased.deathLunar} onChange={(v) => handleChange('deceased', 'deathLunar', v)} placeholder="例如: 七月十五" />
             </div>
-            {/* 改用 type="time" 啟用時間滑動選取 */}
-            <InputField type="time" label="歿 (時間)" value={formData.deceased.deathTime} onChange={(v) => handleChange('deceased', 'deathTime', v)} />
+            {/* 改用 text 並加上 list 實現能輸入也能滑動下拉 */}
+            <InputField type="text" list="time-options" label="歿 (時間)" value={formData.deceased.deathTime} onChange={(v) => handleChange('deceased', 'deathTime', v)} placeholder="例如: 上午 10:30" />
             <div className="grid grid-cols-2 gap-3">
               <InputField label="停靈" value={formData.deceased.restingPlace} onChange={(v) => handleChange('deceased', 'restingPlace', v)} />
               <InputField label="停柩" value={formData.deceased.coffinPlace} onChange={(v) => handleChange('deceased', 'coffinPlace', v)} />
@@ -178,12 +178,12 @@
 
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
             <SectionTitle icon={IconCalendar} title="告別式資訊" />
-            {/* 改用 type="date" 和 type="time" */}
-            <InputField type="date" label="告別式日期" value={formData.ceremony.date} onChange={(v) => handleChange('ceremony', 'date', v)} />
+            {/* 改為文字輸入以支援民國年 */}
+            <InputField type="text" label="告別式日期" value={formData.ceremony.date} onChange={(v) => handleChange('ceremony', 'date', v)} placeholder="例如: 113/01/15" />
             <InputField label="告別式地點" value={formData.ceremony.location} onChange={(v) => handleChange('ceremony', 'location', v)} />
             <div className="grid grid-cols-2 gap-3">
-              <InputField type="time" label="家祭時間" value={formData.ceremony.familyTime} onChange={(v) => handleChange('ceremony', 'familyTime', v)} />
-              <InputField type="time" label="公祭時間" value={formData.ceremony.publicTime} onChange={(v) => handleChange('ceremony', 'publicTime', v)} />
+              <InputField type="text" list="time-options" label="家祭時間" value={formData.ceremony.familyTime} onChange={(v) => handleChange('ceremony', 'familyTime', v)} placeholder="例如: 上午 08:00" />
+              <InputField type="text" list="time-options" label="公祭時間" value={formData.ceremony.publicTime} onChange={(v) => handleChange('ceremony', 'publicTime', v)} placeholder="例如: 上午 09:00" />
             </div>
           </div>
 
@@ -206,6 +206,26 @@
               ))}
             </div>
           </div>
+
+          {/* 供時間欄位使用的下拉選項 (能滑動選擇也能手動輸入) */}
+          <datalist id="time-options">
+            <option value="上午 07:00" />
+            <option value="上午 07:30" />
+            <option value="上午 08:00" />
+            <option value="上午 08:30" />
+            <option value="上午 09:00" />
+            <option value="上午 09:30" />
+            <option value="上午 10:00" />
+            <option value="上午 10:30" />
+            <option value="上午 11:00" />
+            <option value="上午 11:30" />
+            <option value="中午 12:00" />
+            <option value="下午 01:00" />
+            <option value="下午 01:30" />
+            <option value="下午 02:00" />
+            <option value="下午 02:30" />
+            <option value="下午 03:00" />
+          </datalist>
         </div>
       );
 
