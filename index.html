@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>訃聞填寫與檢視系統</title>
   
-  <!-- 載入 Tailwind CSS (用於樣式) -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- 載入 React 與 ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   
-  <!-- 載入 Babel (讓瀏覽器可以直接看懂 JSX 語法) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- 載入 html2canvas (用於下載圖片) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
@@ -26,7 +22,6 @@
 </head>
 <body class="bg-gray-50">
   
-  <!-- React 應用程式會掛載到這個 div 裡面 -->
   <div id="root"></div>
 
   <script type="text/babel">
@@ -42,14 +37,15 @@
     const IconDownload = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>;
     const IconHeartHandshake = ({ size = 20, className = "" }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>;
 
-    // --- 獨立的共用元件 (移到主元件外部，解決輸入卡頓問題) ---
+    // --- 獨立的共用元件 ---
+    // 已修正：確保每個關係都有唯一不重複的 key
     const familyFields = [
       { label: '孝男', key: 'son' }, { label: '孝婦', key: 'daughterInLaw' },
       { label: '孝女', key: 'daughter' }, { label: '孝女婿', key: 'sonInLaw' },
       { label: '孝孫', key: 'grandson' }, { label: '孝孫媳', key: 'grandsonInLaw' },
       { label: '孝孫女', key: 'granddaughter' }, { label: '孝孫婿', key: 'grandsonInLaw2' },
-      { label: '孝外孫', key: 'mGrandson' }, { label: '孝外孫媳', key: 'mGranddaughterInLaw' },
-      { label: '孝外孫女', key: 'mGranddaughter' }, { label: '孝外孫婿', key: 'mGrandsonInLaw' },
+      { label: '孝外孫', key: 'mGrandson' }, { label: '孝外孫媳', key: 'mGrandsonInLaw' },
+      { label: '孝外孫女', key: 'mGranddaughter' }, { label: '孝外孫婿', key: 'mGranddaughterInLaw婿' },
       { label: '曾孫', key: 'greatGrandson' }, { label: '曾孫女', key: 'greatGranddaughter' },
       { label: '外曾孫', key: 'mGreatGrandson' }, { label: '外曾孫女', key: 'mGreatGranddaughter' },
       { label: '胞兄', key: 'brother' }, { label: '胞兄嫂', key: 'sisterInLaw' },
@@ -57,7 +53,7 @@
       { label: '胞姊', key: 'sister' }, { label: '胞姊夫', key: 'brotherInLaw' },
       { label: '胞妹', key: 'ySister' }, { label: '胞妹婿', key: 'yBrotherInLaw' },
     ];
-    // 新增 type 與 list 屬性以支援原生 date / time 或 datalist 選擇器
+
     const InputField = ({ label, value, onChange, placeholder = '', type = 'text', list }) => (
       <div className="flex flex-col mb-3">
         <label className="text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -65,7 +61,7 @@
           type={type}
           list={list}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-base"
-          value={value}
+          value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || `請輸入${label}`}
         />
@@ -111,6 +107,7 @@
       const [isDownloading, setIsDownloading] = useState(false);
       const previewRef = useRef(null);
 
+      // 已修正：formData 內部初始化的 key 與 familyFields 一致，避免 key 名重複衝突
       const [formData, setFormData] = useState({
         deceased: {
           name: '', birthSolar: '', birthLunar: '', deathSolar: '', deathLunar: '', deathTime: '', restingPlace: '', coffinPlace: '', religion: '',
@@ -123,7 +120,7 @@
         },
         family: {
           son: '', daughterInLaw: '', daughter: '', sonInLaw: '', grandson: '', grandsonInLaw: '', granddaughter: '', grandsonInLaw2: '',
-          mGrandson: '', mGranddaughterInLaw: '', mGranddaughter: '', mGrandsonInLaw: '', greatGrandson: '', greatGranddaughter: '',
+          mGrandson: '', mGrandsonInLaw: '', mGranddaughter: '', mGranddaughterInLaw婿: '', greatGrandson: '', greatGranddaughter: '',
           mGreatGrandson: '', mGreatGranddaughter: '', brother: '', sisterInLaw: '', yBrother: '', ySisterInLaw: '', sister: '', brotherInLaw: '', ySister: '', yBrotherInLaw: '',
         }
       });
@@ -138,7 +135,6 @@
         if (!previewRef.current) return;
         setIsDownloading(true);
         try {
-          // 直接呼叫 CDN 載入的 html2canvas
           const canvas = await window.html2canvas(previewRef.current, {
             scale: 2, 
             backgroundColor: '#ffffff',
@@ -167,7 +163,6 @@
               <InputField type="text" label="歿 (國曆)" value={formData.deceased.deathSolar} onChange={(v) => handleChange('deceased', 'deathSolar', v)} placeholder="例如: 113/12/31" />
               <InputField type="text" label="歿 (農曆)" value={formData.deceased.deathLunar} onChange={(v) => handleChange('deceased', 'deathLunar', v)} placeholder="例如: 七月十五" />
             </div>
-            {/* 改用 text 並加上 list 實現能輸入也能滑動下拉 */}
             <InputField type="text" list="time-options" label="歿 (時間)" value={formData.deceased.deathTime} onChange={(v) => handleChange('deceased', 'deathTime', v)} placeholder="例如: 上午 10:30" />
             <div className="grid grid-cols-2 gap-3">
               <InputField label="停靈" value={formData.deceased.restingPlace} onChange={(v) => handleChange('deceased', 'restingPlace', v)} />
@@ -178,7 +173,6 @@
 
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
             <SectionTitle icon={IconCalendar} title="告別式資訊" />
-            {/* 改為文字輸入以支援民國年 */}
             <InputField type="text" label="告別式日期" value={formData.ceremony.date} onChange={(v) => handleChange('ceremony', 'date', v)} placeholder="例如: 113/01/15" />
             <InputField label="告別式地點" value={formData.ceremony.location} onChange={(v) => handleChange('ceremony', 'location', v)} />
             <div className="grid grid-cols-2 gap-3">
@@ -206,26 +200,6 @@
               ))}
             </div>
           </div>
-
-          {/* 供時間欄位使用的下拉選項 (能滑動選擇也能手動輸入) */}
-          <datalist id="time-options">
-            <option value="上午 07:00" />
-            <option value="上午 07:30" />
-            <option value="上午 08:00" />
-            <option value="上午 08:30" />
-            <option value="上午 09:00" />
-            <option value="上午 09:30" />
-            <option value="上午 10:00" />
-            <option value="上午 10:30" />
-            <option value="上午 11:00" />
-            <option value="上午 11:30" />
-            <option value="中午 12:00" />
-            <option value="下午 01:00" />
-            <option value="下午 01:30" />
-            <option value="下午 02:00" />
-            <option value="下午 02:30" />
-            <option value="下午 03:00" />
-          </datalist>
         </div>
       );
 
@@ -288,6 +262,26 @@
             {/* Content */}
             <main className="p-4 sm:bg-white sm:shadow-lg sm:rounded-b-2xl">
               {viewMode === 'edit' ? renderEditMode() : renderPreviewMode()}
+              
+              {/* 供時間欄位使用的下拉選項 */}
+              <datalist id="time-options">
+                <option value="上午 07:00" />
+                <option value="上午 07:30" />
+                <option value="上午 08:00" />
+                <option value="上午 08:30" />
+                <option value="上午 09:00" />
+                <option value="上午 09:30" />
+                <option value="上午 10:00" />
+                <option value="上午 10:30" />
+                <option value="上午 11:00" />
+                <option value="上午 11:30" />
+                <option value="中午 12:00" />
+                <option value="下午 01:00" />
+                <option value="下午 01:30" />
+                <option value="下午 02:00" />
+                <option value="下午 02:30" />
+                <option value="下午 03:00" />
+              </datalist>
             </main>
 
             {/* Bottom Floating Action Bar */}
